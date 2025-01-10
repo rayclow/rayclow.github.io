@@ -38,6 +38,7 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js"
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js'
+import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js'
 import { GUI } from "three/addons/libs/lil-gui.module.min.js";
 
 const box = document.getElementById('box')
@@ -67,28 +68,24 @@ const folder = new GUI()
 // 变换控制器
 const transformControls = new TransformControls(camera, renderer.domElement)
 
-// 模式 'translate' | 'rotate' | 'scale'
 folder.add(transformControls, 'mode', ['translate', 'rotate', 'scale']).name('模式')
 
 const transformControlsRoot = transformControls.getHelper()
 
+transformControls.addEventListener('dragging-changed', event => controls.enabled = !event.value)
+
+const box3 = new THREE.Box3()
+
+const box3Helper = new THREE.Box3Helper(box3, 0xffff00)
+
+scene.add(box3Helper)
+
+transformControls.addEventListener('change', () => box3Helper.box = box3.setFromObject(transformControls.object))
+
 scene.add(transformControlsRoot)
 
-transformControls.addEventListener('dragging-changed', event => {
-
-    controls.enabled = !event.value
-
-})
-
-window.onresize = () => {
-
-    renderer.setSize(box.clientWidth, box.clientHeight)
-
-    camera.aspect = box.clientWidth / box.clientHeight
-
-    camera.updateProjectionMatrix()
-
-}
+// 模型
+const texture = new RGBELoader().load(`https://file.threehub.cn/` + '/files/hdr/1k.hdr', t => t.mapping = THREE.EquirectangularReflectionMapping)
 
 new GLTFLoader().load('https://rayclow.github.io/1/files/model/925.glb', (gltf) => {
 
@@ -96,43 +93,13 @@ new GLTFLoader().load('https://rayclow.github.io/1/files/model/925.glb', (gltf) 
 
     model.scale.set(0.01, 0.01, 0.01)
 
-    model.traverse((child) => {
-
-        if (child.isMesh) child.castShadow = true
-
-    })
+    model.traverse((child) => child.isMesh && (child.material.envMap = texture))
 
     scene.add(model)
 
-    folder.add({ '控制模型': () => transformControls.attach(model) }, '控制模型')
+    transformControls.attach(model)
 
 })
-
-const pointLight = new THREE.DirectionalLight(0xffffff, 1)
-
-pointLight.position.set(1, 2, 0)
-
-pointLight.castShadow = true
-
-scene.add(pointLight)
-
-folder.add({ '控制光源': () => transformControls.attach(pointLight) }, '控制光源')
-
-const plane = new THREE.Mesh(new THREE.PlaneGeometry(100, 100), new THREE.MeshStandardMaterial({ color: 0xffffff }))
-
-plane.position.y -= 0.5
-
-plane.rotation.x = -Math.PI / 2
-
-plane.receiveShadow = true
-
-scene.add(plane)
-
-// 环境光
-var ambient = new THREE.AmbientLight(0xffffff);
-scene.add(ambient);
-
-folder.add({ '控制平面': () => transformControls.attach(plane) }, '控制平面')
 
 animate()
 
@@ -145,6 +112,8 @@ function animate() {
     renderer.render(scene, camera)
 
 }
+
+
 
 
 
