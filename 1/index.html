@@ -128,6 +128,10 @@ plane.receiveShadow = true
 
 scene.add(plane)
 
+// 环境光
+var ambient = new THREE.AmbientLight(0xffffff);
+scene.add(ambient);
+
 folder.add({ '控制平面': () => transformControls.attach(plane) }, '控制平面')
 
 animate()
